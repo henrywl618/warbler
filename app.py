@@ -3,6 +3,7 @@ import os
 from flask import Flask, render_template, request, flash, redirect, session, g
 from flask_debugtoolbar import DebugToolbarExtension
 from sqlalchemy.exc import IntegrityError
+import pdb
 
 from forms import UserAddForm, LoginForm, MessageForm, UserEditForm
 from models import db, connect_db, User, Message
@@ -316,8 +317,10 @@ def homepage():
     """
 
     if g.user:
+        followed_users = g.user.following
         messages = (Message
                     .query
+                    .filter((Message.user == g.user) | (Message.user_id.in_([user.id for user in followed_users])))
                     .order_by(Message.timestamp.desc())
                     .limit(100)
                     .all())
