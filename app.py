@@ -6,7 +6,7 @@ from sqlalchemy.exc import IntegrityError
 import pdb
 
 from forms import UserAddForm, LoginForm, MessageForm, UserEditForm
-from models import db, connect_db, User, Message
+from models import db, connect_db, User, Message, Likes
 
 CURR_USER_KEY = "curr_user"
 
@@ -153,7 +153,8 @@ def users_show(user_id):
                 .order_by(Message.timestamp.desc())
                 .limit(100)
                 .all())
-    return render_template('users/show.html', user=user, messages=messages)
+    likes = Likes.query.filter(Likes.user_id == user_id).all()
+    return render_template('users/show.html', user=user, messages=messages, likes=len(likes))
 
 
 @app.route('/users/<int:user_id>/following')
@@ -165,7 +166,8 @@ def show_following(user_id):
         return redirect("/")
 
     user = User.query.get_or_404(user_id)
-    return render_template('users/following.html', user=user)
+    likes = Likes.query.filter(Likes.user_id == user_id).all()
+    return render_template('users/following.html', user=user , likes=len(likes))
 
 
 @app.route('/users/<int:user_id>/followers')
@@ -177,7 +179,8 @@ def users_followers(user_id):
         return redirect("/")
 
     user = User.query.get_or_404(user_id)
-    return render_template('users/followers.html', user=user)
+    likes = Likes.query.filter(Likes.user_id == user_id).all()
+    return render_template('users/followers.html', user=user, likes=len(likes))
 
 
 @app.route('/users/follow/<int:follow_id>', methods=['POST'])
@@ -324,11 +327,47 @@ def homepage():
                     .order_by(Message.timestamp.desc())
                     .limit(100)
                     .all())
+        likes = Likes.query.filter(Likes.user_id == g.user.id).all()
+        liked_msg_ids = [like.message_id for like in likes]
 
-        return render_template('home.html', messages=messages)
+        return render_template('home.html', messages=messages, liked_msg_ids=liked_msg_ids)
 
     else:
         return render_template('home-anon.html')
+
+##############################################################################
+# Liking a message route
+
+@app.route("/users/add_like/<msg_id>" ,methods=["POST"])
+def toggle_like(msg_id):
+    message = Message.query.get_or_404(msg_id)
+
+    if message.user_id == g.user.id:
+        flash("Cannot like your own message!", "danger")
+        return redirect("/");
+    already_liked = (Likes
+                    .query
+                    .filter((g.user.id == Likes.user_id),(Likes.message_id == msg_id))
+                    .one_or_none())
+    if already_liked:
+        # pdb.set_trace()
+        db.session.delete(already_liked)
+        db.session.commit()
+        return redirect("/")
+    else:
+        new_like = Likes(user_id=g.user.id,message_id=msg_id)
+        db.session.add(new_like)
+        db.session.commit()
+        return redirect("/")
+
+@app.route("/users/<int:user_id>/likes")
+def view_liked_messages(user_id):
+    user = User.query.get_or_404(user_id)
+    likes = Likes.query.filter(Likes.user_id == user_id).all()
+    liked_msg_ids = [like.message_id for like in likes]
+    liked_messages = Message.query.filter(Message.id.in_(liked_msg_ids)).all()
+
+    return render_template("users/likes.html", messages=liked_messages, user=user, likes=len(liked_messages))
 
 
 ##############################################################################
