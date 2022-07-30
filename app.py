@@ -1,6 +1,6 @@
 import os
 
-from flask import Flask, render_template, request, flash, redirect, session, g
+from flask import Flask, render_template, request, flash, redirect, session, g, url_for
 from flask_debugtoolbar import DebugToolbarExtension
 from sqlalchemy.exc import IntegrityError
 from functools import wraps
@@ -59,7 +59,7 @@ def login_required(f):
     def validate_logged_in(*args, **kwargs):
         if not g.user:
             flash("Access unauthorized.", "danger")
-            return redirect("/")
+            return redirect(url_for('homepage'))
         return f(*args, **kwargs)
     return validate_logged_in
 
@@ -94,7 +94,7 @@ def signup():
 
         do_login(user)
 
-        return redirect("/")
+        return redirect(url_for('homepage'))
 
     else:
         return render_template('users/signup.html', form=form)
@@ -113,7 +113,7 @@ def login():
         if user:
             do_login(user)
             flash(f"Hello, {user.username}!", "success")
-            return redirect("/")
+            return redirect(url_for('homepage'))
 
         flash("Invalid credentials.", 'danger')
 
@@ -126,7 +126,7 @@ def logout():
     do_logout()
     flash("You have successfully logged out!","success")
     
-    return redirect("/login")
+    return redirect(url_for('login'))
 
 
 ##############################################################################
@@ -208,7 +208,7 @@ def add_follow(follow_id):
     g.user.following.append(followed_user)
     db.session.commit()
 
-    return redirect(f"/users/{g.user.id}/following")
+    return redirect(url_for('show_following', user_id=g.user.id))
 
 
 @app.route('/users/stop-following/<int:follow_id>', methods=['POST'])
@@ -224,7 +224,7 @@ def stop_following(follow_id):
     g.user.following.remove(followed_user)
     db.session.commit()
 
-    return redirect(f"/users/{g.user.id}/following")
+    return redirect(url_for('show_following', user_id=g.user.id))
 
 
 @app.route('/users/profile', methods=["GET", "POST"])
@@ -247,10 +247,10 @@ def profile():
             g.user.bio = form.bio.data
             db.session.commit()
             flash("User Profile updated succesfully!", "success")
-            return redirect(f"/users/{g.user.id}")
+            return redirect(url_for('users_show',user_id=g.user.id))
         else:
             flash("Password incorrect.", "danger")
-            return redirect("/")
+            return redirect(url_for('homepage'))
 
     return render_template("users/edit.html", form=form)
 
@@ -271,7 +271,7 @@ def delete_user():
     db.session.delete(g.user)
     db.session.commit()
 
-    return redirect("/signup")
+    return redirect(url_for('signup'))
 
 
 ##############################################################################
@@ -296,7 +296,7 @@ def messages_add():
         g.user.messages.append(msg)
         db.session.commit()
 
-        return redirect(f"/users/{g.user.id}")
+        return redirect(url_for('users_show',user_id=g.user.id))
 
     return render_template('messages/new.html', form=form)
 
@@ -322,7 +322,7 @@ def messages_destroy(message_id):
     db.session.delete(msg)
     db.session.commit()
 
-    return redirect(f"/users/{g.user.id}")
+    return redirect(url_for('users_show',user_id=g.user.id))
 
 
 ##############################################################################
@@ -362,7 +362,7 @@ def toggle_like(msg_id):
 
     if message.user_id == g.user.id:
         flash("Cannot like your own message!", "danger")
-        return redirect("/");
+        return redirect(url_for('homepage'));
     already_liked = (Likes
                     .query
                     .filter((g.user.id == Likes.user_id),(Likes.message_id == msg_id))
@@ -371,12 +371,12 @@ def toggle_like(msg_id):
         # pdb.set_trace()
         db.session.delete(already_liked)
         db.session.commit()
-        return redirect("/")
+        return redirect(url_for('homepage'))
     else:
         new_like = Likes(user_id=g.user.id,message_id=msg_id)
         db.session.add(new_like)
         db.session.commit()
-        return redirect("/")
+        return redirect(url_for('homepage'))
 
 @app.route("/users/<int:user_id>/likes")
 def view_liked_messages(user_id):
