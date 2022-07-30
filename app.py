@@ -352,6 +352,7 @@ def homepage():
 # Liking a message route
 
 @app.route("/users/add_like/<msg_id>" ,methods=["POST"])
+@login_required
 def toggle_like(msg_id):
     message = Message.query.get_or_404(msg_id)
 
