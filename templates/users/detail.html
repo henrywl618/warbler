@@ -1,3 +1,4 @@
+{% from 'users/macros.j2' import profilebutton, followbutton%}
 {% extends 'base.html' %}
 
 {% block content %}
@@ -35,19 +36,19 @@
           </li>
           <div class="ml-auto">
             {% if g.user.id == user.id %}
+
             <a href="/users/profile" class="btn btn-outline-secondary">Edit Profile</a>
-            <form method="POST" action="/users/delete" class="form-inline">
-              <button class="btn btn-outline-danger ml-2">Delete Profile</button>
-            </form>
+            {{ profilebutton(action="/users/delete", formclass="form-inline", buttonclass="btn btn-outline-danger ml-2", buttontext="Delete Profile") }}
+
             {% elif g.user %}
             {% if g.user.is_following(user) %}
-            <form method="POST" action="/users/stop-following/{{ user.id }}">
-              <button class="btn btn-primary">Unfollow</button>
-            </form>
+
+            {{ profilebutton(action="/users/stop-following/{{ user.id }}", buttonclass="btn btn-primary", buttontext="Unfollow") }}
+
             {% else %}
-            <form method="POST" action="/users/follow/{{ user.id }}">
-              <button class="btn btn-outline-primary">Follow</button>
-            </form>
+
+            {{ profilebutton(action="/users/follow/{{ user.id }}", buttonclass="btn btn-outline-primary", buttontext="Follow") }}
+            
             {% endif %}
             {% endif %}
           </div>
