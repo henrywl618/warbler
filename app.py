@@ -163,8 +163,7 @@ def users_show(user_id):
                 .order_by(Message.timestamp.desc())
                 .limit(100)
                 .all())
-    likes = Likes.query.filter(Likes.user_id == user_id).all()
-    return render_template('users/show.html', user=user, messages=messages, likes=len(likes))
+    return render_template('users/show.html', user=user, messages=messages, likes=len(user.likes))
 
 
 @app.route('/users/<int:user_id>/following')
@@ -177,8 +176,7 @@ def show_following(user_id):
     #     return redirect("/")
 
     user = User.query.get_or_404(user_id)
-    likes = Likes.query.filter(Likes.user_id == user_id).all()
-    return render_template('users/following.html', user=user , likes=len(likes))
+    return render_template('users/following.html', user=user , likes=len(user.likes))
 
 
 @app.route('/users/<int:user_id>/followers')
@@ -191,8 +189,7 @@ def users_followers(user_id):
     #     return redirect("/")
 
     user = User.query.get_or_404(user_id)
-    likes = Likes.query.filter(Likes.user_id == user_id).all()
-    return render_template('users/followers.html', user=user, likes=len(likes))
+    return render_template('users/followers.html', user=user, likes=len(user.likes))
 
 
 @app.route('/users/follow/<int:follow_id>', methods=['POST'])
@@ -345,10 +342,8 @@ def homepage():
                     .order_by(Message.timestamp.desc())
                     .limit(100)
                     .all())
-        likes = Likes.query.filter(Likes.user_id == g.user.id).all()
-        liked_msg_ids = [like.message_id for like in likes]
 
-        return render_template('home.html', messages=messages, liked_msg_ids=liked_msg_ids)
+        return render_template('home.html', messages=messages, likes=g.user.likes)
 
     else:
         return render_template('home-anon.html')
@@ -381,9 +376,7 @@ def toggle_like(msg_id):
 @app.route("/users/<int:user_id>/likes")
 def view_liked_messages(user_id):
     user = User.query.get_or_404(user_id)
-    likes = Likes.query.filter(Likes.user_id == user_id).all()
-    liked_msg_ids = [like.message_id for like in likes]
-    liked_messages = Message.query.filter(Message.id.in_(liked_msg_ids)).all()
+    liked_messages = user.likes
 
     return render_template("users/likes.html", messages=liked_messages, user=user, likes=len(liked_messages))
 
