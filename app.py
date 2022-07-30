@@ -3,6 +3,7 @@ import os
 from flask import Flask, render_template, request, flash, redirect, session, g
 from flask_debugtoolbar import DebugToolbarExtension
 from sqlalchemy.exc import IntegrityError
+from functools import wraps
 import pdb
 
 from forms import UserAddForm, LoginForm, MessageForm, UserEditForm
@@ -52,6 +53,15 @@ def do_logout():
 
     if CURR_USER_KEY in session:
         del session[CURR_USER_KEY]
+
+def login_required(f):
+    @wraps(f)
+    def validate_logged_in(*args, **kwargs):
+        if not g.user:
+            flash("Access unauthorized.", "danger")
+            return redirect("/")
+        return f(*args, **kwargs)
+    return validate_logged_in
 
 
 @app.route('/signup', methods=["GET", "POST"])
@@ -158,12 +168,13 @@ def users_show(user_id):
 
 
 @app.route('/users/<int:user_id>/following')
+@login_required
 def show_following(user_id):
     """Show list of people this user is following."""
 
-    if not g.user:
-        flash("Access unauthorized.", "danger")
-        return redirect("/")
+    # if not g.user:
+    #     flash("Access unauthorized.", "danger")
+    #     return redirect("/")
 
     user = User.query.get_or_404(user_id)
     likes = Likes.query.filter(Likes.user_id == user_id).all()
@@ -171,12 +182,13 @@ def show_following(user_id):
 
 
 @app.route('/users/<int:user_id>/followers')
+@login_required
 def users_followers(user_id):
     """Show list of followers of this user."""
 
-    if not g.user:
-        flash("Access unauthorized.", "danger")
-        return redirect("/")
+    # if not g.user:
+    #     flash("Access unauthorized.", "danger")
+    #     return redirect("/")
 
     user = User.query.get_or_404(user_id)
     likes = Likes.query.filter(Likes.user_id == user_id).all()
@@ -184,12 +196,13 @@ def users_followers(user_id):
 
 
 @app.route('/users/follow/<int:follow_id>', methods=['POST'])
+@login_required
 def add_follow(follow_id):
     """Add a follow for the currently-logged-in user."""
 
-    if not g.user:
-        flash("Access unauthorized.", "danger")
-        return redirect("/")
+    # if not g.user:
+    #     flash("Access unauthorized.", "danger")
+    #     return redirect("/")
 
     followed_user = User.query.get_or_404(follow_id)
     g.user.following.append(followed_user)
@@ -199,12 +212,13 @@ def add_follow(follow_id):
 
 
 @app.route('/users/stop-following/<int:follow_id>', methods=['POST'])
+@login_required
 def stop_following(follow_id):
     """Have currently-logged-in-user stop following this user."""
 
-    if not g.user:
-        flash("Access unauthorized.", "danger")
-        return redirect("/")
+    # if not g.user:
+    #     flash("Access unauthorized.", "danger")
+    #     return redirect("/")
 
     followed_user = User.query.get(follow_id)
     g.user.following.remove(followed_user)
@@ -214,12 +228,13 @@ def stop_following(follow_id):
 
 
 @app.route('/users/profile', methods=["GET", "POST"])
+@login_required
 def profile():
     """Update profile for current user."""
 
-    if not g.user:
-        flash("Access unauthorized.", "danger")
-        return redirect("/")
+    # if not g.user:
+    #     flash("Access unauthorized.", "danger")
+    #     return redirect("/")
     
     form = UserEditForm(obj=g.user)
 
@@ -243,12 +258,13 @@ def profile():
 
 
 @app.route('/users/delete', methods=["POST"])
+@login_required
 def delete_user():
     """Delete user."""
 
-    if not g.user:
-        flash("Access unauthorized.", "danger")
-        return redirect("/")
+    # if not g.user:
+    #     flash("Access unauthorized.", "danger")
+    #     return redirect("/")
 
     do_logout()
 
@@ -262,15 +278,16 @@ def delete_user():
 # Messages routes:
 
 @app.route('/messages/new', methods=["GET", "POST"])
+@login_required
 def messages_add():
     """Add a message:
 
     Show form if GET. If valid, update message and redirect to user page.
     """
 
-    if not g.user:
-        flash("Access unauthorized.", "danger")
-        return redirect("/")
+    # if not g.user:
+    #     flash("Access unauthorized.", "danger")
+    #     return redirect("/")
 
     form = MessageForm()
 
@@ -293,12 +310,13 @@ def messages_show(message_id):
 
 
 @app.route('/messages/<int:message_id>/delete', methods=["POST"])
+@login_required
 def messages_destroy(message_id):
     """Delete a message."""
 
-    if not g.user:
-        flash("Access unauthorized.", "danger")
-        return redirect("/")
+    # if not g.user:
+    #     flash("Access unauthorized.", "danger")
+    #     return redirect("/")
 
     msg = Message.query.get(message_id)
     db.session.delete(msg)
